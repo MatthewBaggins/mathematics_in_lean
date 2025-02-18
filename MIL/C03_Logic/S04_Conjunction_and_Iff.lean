@@ -63,8 +63,13 @@ example {x y : ℝ} (h : x ≤ y ∧ x ≠ y) : ¬y ≤ x := by
 example {x y : ℝ} (h : x ≤ y ∧ x ≠ y) : ¬y ≤ x :=
   fun h' ↦ h.right (le_antisymm h.left h')
 
-example {m n : ℕ} (h : m ∣ n ∧ m ≠ n) : m ∣ n ∧ ¬n ∣ m :=
-  sorry
+example {m n : ℕ} (h : m ∣ n ∧ m ≠ n) : m ∣ n ∧ ¬n ∣ m := by
+  have ⟨mdn, mnen⟩ := h
+  constructor
+  . assumption
+  intro ndm
+  apply mnen (dvd_antisymm mdn ndm)
+
 
 example : ∃ x : ℝ, 2 < x ∧ x < 4 :=
   ⟨5 / 2, by norm_num, by norm_num⟩
@@ -101,15 +106,39 @@ example {x y : ℝ} (h : x ≤ y) : ¬y ≤ x ↔ x ≠ y := by
 example {x y : ℝ} (h : x ≤ y) : ¬y ≤ x ↔ x ≠ y :=
   ⟨fun h₀ h₁ ↦ h₀ (by rw [h₁]), fun h₀ h₁ ↦ h₀ (le_antisymm h h₁)⟩
 
-example {x y : ℝ} : x ≤ y ∧ ¬y ≤ x ↔ x ≤ y ∧ x ≠ y :=
-  sorry
+example {x y : ℝ} : x ≤ y ∧ ¬y ≤ x ↔ x ≤ y ∧ x ≠ y := by
+  constructor
+  . rintro ⟨xley, nlex⟩
+    constructor
+    apply xley
+    intro xeqy
+    apply nlex
+    rw [xeqy]
+  . rintro ⟨xley, xney⟩
+    constructor
+    apply xley
+    intro ylex
+    apply xney (le_antisymm xley ylex)
+
 
 theorem aux {x y : ℝ} (h : x ^ 2 + y ^ 2 = 0) : x = 0 :=
-  have h' : x ^ 2 = 0 := by sorry
+  have h' : x ^ 2 = 0 := by linarith [pow_two_nonneg x, pow_two_nonneg y]
   pow_eq_zero h'
 
-example (x y : ℝ) : x ^ 2 + y ^ 2 = 0 ↔ x = 0 ∧ y = 0 :=
-  sorry
+example (x y : ℝ) : x ^ 2 + y ^ 2 = 0 ↔ x = 0 ∧ y = 0 := by
+  constructor
+  . intro h
+    have h' : y^2 + x^2 = 0 := by
+      rw [add_comm]
+      apply h
+    constructor
+    apply aux h
+    apply aux h'
+  . rintro ⟨xeq0, yeq0⟩
+    have x2eq0 : x^2=0 := by exact sq_eq_zero_iff.mpr xeq0
+    have y2eq0 : y^2=0 := by exact sq_eq_zero_iff.mpr yeq0
+    exact Linarith.eq_of_eq_of_eq x2eq0 y2eq0
+
 
 section
 
@@ -130,7 +159,14 @@ theorem not_monotone_iff {f : ℝ → ℝ} : ¬Monotone f ↔ ∃ x y, x ≤ y �
   rfl
 
 example : ¬Monotone fun x : ℝ ↦ -x := by
-  sorry
+  let f := fun x : ℝ ↦ -x
+  have : ∃ x y, x ≤ y ∧ f x > f y := by
+    use -3, -2
+    constructor
+    . linarith
+    dsimp [f]
+    linarith
+  apply not_monotone_iff.mpr this
 
 section
 variable {α : Type*} [PartialOrder α]
@@ -138,7 +174,18 @@ variable (a b : α)
 
 example : a < b ↔ a ≤ b ∧ a ≠ b := by
   rw [lt_iff_le_not_le]
-  sorry
+  constructor
+  . rintro ⟨aleb, nblea⟩
+    constructor
+    apply aleb
+    intro aeqb
+    apply nblea
+    rw [aeqb]
+  . rintro ⟨aleb, aneb⟩
+    constructor
+    apply aleb
+    intro blea
+    apply aneb (le_antisymm aleb blea)
 
 end
 
@@ -148,10 +195,16 @@ variable (a b c : α)
 
 example : ¬a < a := by
   rw [lt_iff_le_not_le]
-  sorry
+  intro ⟨alea, nalea⟩
+  apply nalea alea
 
 example : a < b → b < c → a < c := by
   simp only [lt_iff_le_not_le]
-  sorry
+  rintro ⟨aleb, nblea⟩ ⟨blec, ncleb⟩
+  constructor
+  apply le_trans aleb blec
+  intro clea
+  have cleb : c ≤ b := le_trans clea aleb
+  apply ncleb cleb
 
 end
