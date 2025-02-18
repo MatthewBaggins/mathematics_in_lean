@@ -42,7 +42,7 @@ theorem fnUb_add {f g : ℝ → ℝ} {a b : ℝ} (hfa : FnUb f a) (hgb : FnUb g 
   fun x ↦ add_le_add (hfa x) (hgb x)
 
 section
-
+#check abs_add
 variable {f g : ℝ → ℝ}
 
 example (ubf : FnHasUb f) (ubg : FnHasUb g) : FnHasUb fun x ↦ f x + g x := by
