@@ -7,8 +7,14 @@ namespace C03S01
 
 #check ∀ x y ε : ℝ, 0 < ε → ε ≤ 1 → |x| < ε → |y| < ε → |x * y| < ε
 
-theorem my_lemma : ∀ x y ε : ℝ, 0 < ε → ε ≤ 1 → |x| < ε → |y| < ε → |x * y| < ε :=
-  sorry
+theorem my_lemma : ∀ x y ε : ℝ, 0 < ε → ε ≤ 1 → |x| < ε → |y| < ε → |x * y| < ε := by
+  intro x y epos
+  calc
+    |x * y| = |x| * |y| := by apply abs_mul
+    _ < |x| * epos := by apply mul_lt_mul_left
+    _ < epos * epos := by apply mul_lt_mul_right
+    _ < epos := by linarith
+
 
 section
 variable (a b δ : ℝ)
