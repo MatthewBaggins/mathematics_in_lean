@@ -44,7 +44,14 @@ example : s ∩ (t ∪ u) ⊆ s ∩ t ∪ s ∩ u := by
   · right; exact ⟨xs, xu⟩
 
 example : s ∩ t ∪ s ∩ u ⊆ s ∩ (t ∪ u) := by
-  sorry
+  rintro x (⟨xs, xt⟩ | ⟨xs, xu⟩)
+  . constructor
+    exact xs
+    left; exact xt
+  . constructor
+    exact xs;
+    right; exact xu
+
 example : (s \ t) \ u ⊆ s \ (t ∪ u) := by
   intro x xstu
   have xs : x ∈ s := xstu.1.1
@@ -64,7 +71,22 @@ example : (s \ t) \ u ⊆ s \ (t ∪ u) := by
   rintro (xt | xu) <;> contradiction
 
 example : s \ (t ∪ u) ⊆ (s \ t) \ u := by
-  sorry
+  rintro x ⟨xs, xntu⟩
+  have xnt : x ∉ t := by
+    intro xt
+    have : x ∈ t ∪ u := by left; exact xt
+    apply xntu this
+  have xnu : x ∉ u := by
+    intro xu
+    have : x ∈ t ∪ u := by right; exact xu
+    apply xntu this
+  constructor
+  constructor
+  exact xs
+  exact xnt
+  exact xnu
+
+
 example : s ∩ t = t ∩ s := by
   ext x
   simp only [mem_inter_iff]
@@ -82,19 +104,59 @@ example : s ∩ t = t ∩ s := by
   · rintro x ⟨xs, xt⟩; exact ⟨xt, xs⟩
   · rintro x ⟨xt, xs⟩; exact ⟨xs, xt⟩
 
-example : s ∩ t = t ∩ s :=
-    Subset.antisymm sorry sorry
+example : s ∩ t = t ∩ s := by
+    apply Subset.antisymm
+    . intro x ⟨h, h'⟩
+      exact ⟨h', h⟩
+    . intro x ⟨h, h'⟩
+      exact ⟨h', h⟩
+
 example : s ∩ (s ∪ t) = s := by
-  sorry
+  apply Subset.antisymm
+  . intro x ⟨xs, xst⟩
+    exact xs
+  . intro x xs
+    exact ⟨xs, Or.inl xs⟩
+
 
 example : s ∪ s ∩ t = s := by
-  sorry
+  apply Subset.antisymm
+  . intro x
+    rintro (xs | ⟨xs, xt⟩)
+    exact xs; exact xs
+  . intro x xs
+    left; exact xs
 
 example : s \ t ∪ t = s ∪ t := by
-  sorry
+  apply Subset.antisymm
+  . intro x
+    rintro (⟨xs, xnt⟩ | xt)
+    . left; exact xs
+    . right; exact xt
+  . intro x
+    rintro (xs | xt)
+    . left
+      constructor
+      . exact xs
+      . intro xt; sorry
+
+    . right; exact xt
+
+
 
 example : s \ t ∪ t \ s = (s ∪ t) \ (s ∩ t) := by
-  sorry
+  apply Subset.antisymm
+  . rintro x (⟨xs, xnt⟩ | ⟨xt, xns⟩)
+    . constructor
+      . left; exact xs
+      . intro xst; exact xnt xst.2
+    . constructor
+      . right; exact xt
+      . intro xst; exact xns xst.1
+  . rintro x ⟨hcup, hncap⟩
+    . constructor
+      sorry
+
 
 def evens : Set ℕ :=
   { n | Even n }
@@ -235,4 +297,3 @@ example : ⋂₀ s = ⋂ t ∈ s, t := by
   rfl
 
 end
-
