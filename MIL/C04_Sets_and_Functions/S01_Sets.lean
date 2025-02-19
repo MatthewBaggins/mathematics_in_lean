@@ -15,9 +15,19 @@ example (h : s ⊆ t) : s ∩ u ⊆ t ∩ u := by
   exact ⟨h _ xs, xu⟩
 
 example (h : s ⊆ t) : s ∩ u ⊆ t ∩ u := by
+  rintro x ⟨xs, xu⟩
+  have xt : x ∈ t := h xs
+  exact ⟨xt, xu⟩
+
+example (h : s ⊆ t) : s ∩ u ⊆ t ∩ u := by
   simp only [subset_def, mem_inter_iff] at *
   rintro x ⟨xs, xu⟩
   exact ⟨h _ xs, xu⟩
+
+example (h : s ⊆ t) : s ∩ u ⊆ t ∩ u := by
+  rintro x ⟨xs, xu⟩
+  have xt : x ∈ t := h xs
+  exact ⟨xt, xu⟩
 
 example (h : s ⊆ t) : s ∩ u ⊆ t ∩ u := by
   intro x xsu
@@ -128,35 +138,38 @@ example : s ∪ s ∩ t = s := by
     left; exact xs
 
 example : s \ t ∪ t = s ∪ t := by
-  apply Subset.antisymm
-  . intro x
-    rintro (⟨xs, xnt⟩ | xt)
+  ext x
+  constructor
+  . rintro (⟨xs, xnt⟩ | xt)
     . left; exact xs
     . right; exact xt
-  . intro x
-    rintro (xs | xt)
-    . left
-      constructor
-      . exact xs
-      . intro xt; sorry
-
-    . right; exact xt
-
-
+  . by_cases h : x ∈ t
+    . rintro (xs | xt)
+      . right; exact h
+      . right; exact h
+    . rintro (xs | xt)
+      . left; exact ⟨xs, h⟩
+      . right; exact xt
 
 example : s \ t ∪ t \ s = (s ∪ t) \ (s ∩ t) := by
-  apply Subset.antisymm
-  . rintro x (⟨xs, xnt⟩ | ⟨xt, xns⟩)
+  ext x
+  constructor
+  . rintro (⟨xs, xnt⟩ | ⟨xt, xns⟩)
     . constructor
       . left; exact xs
-      . intro xst; exact xnt xst.2
+      . intro ⟨xs, xt⟩; exact xnt xt
     . constructor
       . right; exact xt
-      . intro xst; exact xns xst.1
-  . rintro x ⟨hcup, hncap⟩
-    . constructor
-      sorry
-
+      . rintro ⟨xs, xt⟩; exact xns xs
+  . rintro ⟨(xs | xt), xnst⟩
+    . left
+      constructor
+      exact xs
+      intro xt; exact xnst ⟨xs, xt⟩
+    . right
+      constructor
+      exact xt
+      intro xs; exact xnst ⟨xs, xt⟩
 
 def evens : Set ℕ :=
   { n | Even n }
@@ -165,7 +178,7 @@ def odds : Set ℕ :=
   { n | ¬Even n }
 
 example : evens ∪ odds = univ := by
-  rw [evens, odds]
+  -- rw [evens, odds]
   ext n
   simp [-Nat.not_even_iff_odd]
   apply Classical.em
@@ -177,7 +190,17 @@ example (x : ℕ) : x ∈ (univ : Set ℕ) :=
   trivial
 
 example : { n | Nat.Prime n } ∩ { n | n > 2 } ⊆ { n | ¬Even n } := by
-  sorry
+  intro n
+  rintro ⟨nprime, nge2⟩
+  have h : n = 2 ∨ n % 2 = 1 := Nat.Prime.eq_two_or_odd nprime
+  have : n % 2 = 1 := by
+    rcases h with (neq2 | nodd)
+    . have : n > 2 := by exact nge2
+      have : n ≠ 2 := by exact Ne.symm (Nat.ne_of_lt nge2)
+      exfalso; exact this neq2
+    . exact nodd
+  have : Odd n := Nat.odd_iff.mpr this
+  exact Nat.not_even_iff_odd.mpr this
 
 #print Prime
 
@@ -207,16 +230,30 @@ example (h₀ : ∀ x ∈ s, ¬Even x) (h₁ : ∀ x ∈ s, Prime x) : ∀ x ∈
 
 example (h : ∃ x ∈ s, ¬Even x ∧ Prime x) : ∃ x ∈ s, Prime x := by
   rcases h with ⟨x, xs, _, prime_x⟩
-  use x, xs
+  -- use x, xs
+  exact ⟨x, xs, prime_x⟩
 
 section
 variable (ssubt : s ⊆ t)
 
-example (h₀ : ∀ x ∈ t, ¬Even x) (h₁ : ∀ x ∈ t, Prime x) : ∀ x ∈ s, ¬Even x ∧ Prime x := by
-  sorry
+example
+    (h₀ : ∀ x ∈ t, ¬Even x)
+    (h₁ : ∀ x ∈ t, Prime x)
+    : ∀ x ∈ s, ¬Even x ∧ Prime x
+    := by
+  rintro x xs
+  have xt : x ∈ t := ssubt xs
+  exact ⟨h₀ x xt, h₁ x xt⟩
 
-example (h : ∃ x ∈ s, ¬Even x ∧ Prime x) : ∃ x ∈ t, Prime x := by
-  sorry
+example
+    (h : ∃ x ∈ s, ¬Even x ∧ Prime x)
+    : ∃ x ∈ t, Prime x
+    := by
+  rcases h with ⟨x, xs, ⟨xneven, xprime⟩⟩
+  use x
+  constructor
+  exact ssubt xs
+  exact xprime
 
 end
 
@@ -231,7 +268,8 @@ open Set
 
 example : (s ∩ ⋃ i, A i) = ⋃ i, A i ∩ s := by
   ext x
-  simp only [mem_inter_iff, mem_iUnion]
+  simp only [mem_inter_iff]
+  simp only [mem_iUnion]
   constructor
   · rintro ⟨xs, ⟨i, xAi⟩⟩
     exact ⟨i, xAi, xs⟩
@@ -240,7 +278,8 @@ example : (s ∩ ⋃ i, A i) = ⋃ i, A i ∩ s := by
 
 example : (⋂ i, A i ∩ B i) = (⋂ i, A i) ∩ ⋂ i, B i := by
   ext x
-  simp only [mem_inter_iff, mem_iInter]
+  simp only [mem_inter_iff]
+  simp only [mem_iInter]
   constructor
   · intro h
     constructor
@@ -255,7 +294,26 @@ example : (⋂ i, A i ∩ B i) = (⋂ i, A i) ∩ ⋂ i, B i := by
 
 
 example : (s ∪ ⋂ i, A i) = ⋂ i, A i ∪ s := by
-  sorry
+  ext x
+  simp only [mem_union]
+  simp only [mem_iInter]
+  constructor
+  . rintro (xs | xI)
+    . intro i; right; exact xs
+    . intro i; left
+      exact xI i
+  . intro h
+    by_cases xs : x ∈ s
+    . left; exact xs
+    . right
+      intro i
+      cases h i
+      . assumption
+      . contradiction
+
+
+
+
 
 def primes : Set ℕ :=
   { x | Nat.Prime x }

@@ -116,10 +116,28 @@ theorem aux
   rcases exists_abs_le_of_convergesTo cs with ⟨N₀, B, h₀⟩
   have Bpos : 0 < B := lt_of_le_of_lt (abs_nonneg _) (h₀ N₀ (le_refl _))
   let ε' := ε / B
-  have pos₀ : ε' > 0 := div_pos εpos Bpos
-  rcases ct _ pos₀ with ⟨N₁, h₁⟩
+  have ε'pos : ε' > 0 := div_pos εpos Bpos
+  rcases ct _ ε'pos with ⟨N₁, h₁⟩
+  use max N₀ N₁
+  intro n ngt
+  have ngeN₀ : n ≥ N₀ := le_of_max_le_left ngt
+  have ngeN₁ : n ≥ N₁ := le_of_max_le_right ngt
+  calc
+    |s n * t n - 0| = |s n * (t n - 0)| := by ring
+    _ = |s n| * |t n - 0| := by apply abs_mul
+    _ < B * ε' := by
+        apply mul_lt_mul''
+        . apply h₀
+          apply ngeN₀
+        . apply h₁
+          apply ngeN₁
+        apply abs_nonneg
+        apply abs_nonneg
+    _ = B * (ε / B) := by linarith
+    _ = ε := by
+      apply mul_div_cancel₀
+      exact Ne.symm (ne_of_lt Bpos)
 
-  sorry
 
 theorem convergesTo_mul {s t : ℕ → ℝ} {a b : ℝ}
       (cs : ConvergesTo s a) (ct : ConvergesTo t b) :

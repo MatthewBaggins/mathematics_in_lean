@@ -38,7 +38,8 @@ example : s ∪ s ∩ t = s := by
   · intro xs; left; exact xs
 
 example : s \ t ∪ t = s ∪ t := by
-  ext x; constructor
+  ext x
+  constructor
   · rintro (⟨xs, nxt⟩ | xt)
     · left
       exact xs
@@ -147,4 +148,3 @@ example : (⋃ p ∈ primes, { x | x ≤ p }) = univ := by
   use p, primep
 
 end
-
