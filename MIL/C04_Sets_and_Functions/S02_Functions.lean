@@ -18,7 +18,8 @@ example : f ⁻¹' (u ∩ v) = f ⁻¹' u ∩ f ⁻¹' v := by
   rfl
 
 example : f '' (s ∪ t) = f '' s ∪ f '' t := by
-  ext y; constructor
+  ext y
+  constructor
   · rintro ⟨x, xs | xt, rfl⟩
     · left
       use x, xs
@@ -34,19 +35,42 @@ example : s ⊆ f ⁻¹' (f '' s) := by
   use x, xs
 
 example : f '' s ⊆ v ↔ s ⊆ f ⁻¹' v := by
-  sorry
+  constructor
+  . intro h x xs
+    have : f x ∈ f '' s := mem_image_of_mem f xs
+    exact h this
+  . intro h y ymem
+    rcases ymem with ⟨x, xs, fxeqy⟩
+    rw [← fxeqy]
+    apply h xs
+
 
 example (h : Injective f) : f ⁻¹' (f '' s) ⊆ s := by
-  sorry
+  intro x ⟨y, ys, fyeqfx⟩
+  have xeqy : x = y := h (Eq.symm fyeqfx)
+  have : x ∈ s := mem_of_eq_of_mem xeqy ys
+  exact this
 
 example : f '' (f ⁻¹' u) ⊆ u := by
-  sorry
+  intro y ⟨x, h, fxeqy⟩
+  rw [← fxeqy]
+  apply h
 
 example (h : Surjective f) : u ⊆ f '' (f ⁻¹' u) := by
-  sorry
+  rintro y yu
+  rcases h y with ⟨x, fxeqy⟩
+  rw [← fxeqy]
+  apply mem_image_of_mem
+  apply mem_preimage.mpr
+  apply mem_of_eq_of_mem fxeqy yu
 
 example (h : s ⊆ t) : f '' s ⊆ f '' t := by
+  rintro y h'
+  -- TODO
+
+
   sorry
+#check mem_image
 
 example (h : u ⊆ v) : f ⁻¹' u ⊆ f ⁻¹' v := by
   sorry
