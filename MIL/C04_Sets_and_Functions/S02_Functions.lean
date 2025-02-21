@@ -31,146 +31,254 @@ example : f '' (s ∪ t) = f '' s ∪ f '' t := by
 
 example : s ⊆ f ⁻¹' (f '' s) := by
   intro x xs
-  show f x ∈ f '' s
-  use x, xs
+  have : f x ∈ f '' s := by
+    apply mem_image_of_mem
+    apply xs
+  apply mem_preimage.mpr this
 
 example : f '' s ⊆ v ↔ s ⊆ f ⁻¹' v := by
   constructor
   . intro h x xs
-    have : f x ∈ f '' s := mem_image_of_mem f xs
-    exact h this
-  . intro h y ymem
-    rcases ymem with ⟨x, xs, fxeqy⟩
-    rw [← fxeqy]
-    apply h xs
-
+    apply mem_preimage.mpr
+    apply h
+    apply mem_image_of_mem
+    apply xs
+  . intro h y yfs
+    rcases (mem_image f s y).mp yfs with ⟨x, xs, fxeqy⟩
+    have h' : x ∈ f⁻¹' v := h xs
+    have : f x ∈ f '' (f⁻¹' v) := by
+      apply mem_image_of_mem
+      apply h'
+    apply mem_of_eq_of_mem
+    apply Eq.symm fxeqy
+    apply h'
 
 example (h : Injective f) : f ⁻¹' (f '' s) ⊆ s := by
-  intro x ⟨y, ys, fyeqfx⟩
-  have xeqy : x = y := h (Eq.symm fyeqfx)
-  have : x ∈ s := mem_of_eq_of_mem xeqy ys
-  exact this
+  intro x xffs
+  have : f x ∈ f '' s := by
+    apply mem_preimage.mp
+    apply xffs
+  rcases (mem_image f s (f x)).mp this with ⟨x', x's, fx'eqy⟩
+  have xeqx' : x = x' := h (Eq.symm fx'eqy)
+  have xs : x ∈ s := mem_of_eq_of_mem xeqx' x's
+  exact xs
 
 example : f '' (f ⁻¹' u) ⊆ u := by
-  intro y ⟨x, h, fxeqy⟩
+  intro y yffu
+  rcases (mem_image f (f ⁻¹' u) y).mp yffu with ⟨x, xfu, fxeqy⟩
   rw [← fxeqy]
-  apply h
+  have : f x ∈ u := xfu
+  exact this
 
 example (h : Surjective f) : u ⊆ f '' (f ⁻¹' u) := by
-  rintro y yu
+  intro y yu
   rcases h y with ⟨x, fxeqy⟩
   rw [← fxeqy]
+  rw [← fxeqy] at yu
   apply mem_image_of_mem
-  apply mem_preimage.mpr
-  apply mem_of_eq_of_mem fxeqy yu
+  apply yu
+
 
 example (h : s ⊆ t) : f '' s ⊆ f '' t := by
   intro y yfs
   rcases (mem_image f s y).mp yfs with ⟨x, xs, fxeqy⟩
-  rw [← fxeqy]
   have xt : x ∈ t := h xs
-  have : f x ∈ f '' t := by
-    apply mem_image_of_mem
-    exact xt
-  exact this
-
-#check mem_image
+  rw [← fxeqy]
+  apply mem_image_of_mem
+  exact xt
 
 example (h : u ⊆ v) : f ⁻¹' u ⊆ f ⁻¹' v := by
-  intro x h'
-  have : f x ∈ u := h'
-  apply h h'
+  intro x xfiu
+  have fxu : f x ∈ u := xfiu
+  have fxv : f x ∈ v := h fxu
+  have : x ∈ f⁻¹' v := mem_preimage.mpr fxv
+  exact this
 
 example : f ⁻¹' (u ∪ v) = f ⁻¹' u ∪ f ⁻¹' v := by
   ext x
   constructor
-  . rintro (h | h)
-    . left; apply h
-    . right; apply h
-  . rintro (h | h)
-    . left; apply h
-    . right; apply h
+  . intro xfiu
+    have h : f x ∈ u ∪ v := xfiu
+    rcases h with (hu | hv)
+    . left; exact mem_preimage.mpr hu
+    . right; exact mem_preimage.mpr hv
+  . intro h
+    have : f x ∈ u ∪ v := h
+    exact this
 
 example : f '' (s ∩ t) ⊆ f '' s ∩ f '' t := by
-  rintro y ⟨x, ⟨xs, xt⟩, fxeqy⟩
+  intro y ⟨x, ⟨xs, xt⟩, fxeqy⟩
   rw [← fxeqy]
-  constructor
-  . apply mem_image_of_mem; exact xs
-  . apply mem_image_of_mem; exact xt
+  have : f x ∈ f '' s ∩ f '' t := by
+    constructor
+    . apply mem_image_of_mem; exact xs
+    . apply mem_image_of_mem; exact xt
+  exact this
 
 example (h : Injective f) : f '' s ∩ f '' t ⊆ f '' (s ∩ t) := by
-  rintro y ⟨yfs, yft⟩
+  intro y ⟨yfs, yft⟩
   rcases (mem_image f s y).mp yfs with ⟨x, xs, fxeqy⟩
   rcases (mem_image f t y).mp yft with ⟨x', x't, fx'eqy⟩
-  have fxeqfx' : f x = f x' := Eq.trans fxeqy (Eq.symm fx'eqy)
+  have fxeqfx' : f x = f x' := by
+    apply Eq.trans
+    exact fxeqy
+    exact Eq.symm fx'eqy
   have xeqx' : x = x' := h fxeqfx'
-  have xt : x ∈ t := mem_of_eq_of_mem (h fxeqfx') x't
+  rw [← fxeqy]
+  have xt : x ∈ t := mem_of_eq_of_mem xeqx' x't
   have xst : x ∈ s ∩ t := ⟨xs, xt⟩
-  have : f x ∈ f '' (s ∩ t) := mem_image_of_mem f xst
-  exact mem_of_eq_of_mem (Eq.symm fxeqy) this
-
+  have : f x ∈ f '' (s ∩ t) := by
+    apply mem_image_of_mem
+    exact xst
+  exact this
 
 example : f '' s \ f '' t ⊆ f '' (s \ t) := by
   intro y ⟨yfs, ynft⟩
   rcases (mem_image f s y).mp yfs with ⟨x, xs, fxeqy⟩
-  rw [← fxeqy]
-  have fxnft : f x ∉ f '' t := by
-    rw [← fxeqy] at ynft
-    exact ynft
   have xnt : x ∉ t := by
     intro xt
     have fxft : f x ∈ f '' t := by
       apply mem_image_of_mem
-      apply xt
-    exfalso; exact fxnft fxft
-  have xst : x ∈ s \ t := ⟨xs, xnt⟩
-  apply mem_image_of_mem
-  exact xst
+      exact xt
+    rw [← fxeqy] at ynft
+    apply ynft
+    exact fxft
+  have : x ∈ s \ t := ⟨xs, xnt⟩
+  have : f x ∈ f '' (s \ t) := by apply mem_image_of_mem; exact this
+  rw [← fxeqy]
+  exact this
 
 example : f ⁻¹' u \ f ⁻¹' v ⊆ f ⁻¹' (u \ v) := by
-  intro x ⟨xfu, xnfv⟩
-  have fxu : f x ∈ u := mem_preimage.mp xfu
-  have fxnv : f x ∉ v := λ fxv ↦ xnfv fxv
-  apply mem_preimage.mpr
-  exact ⟨fxu, fxnv⟩
+  intro x ⟨xfiu, xnfiv⟩
+  have fxu : f x ∈ u := xfiu
+  have fxnv : f x ∉ v := xnfiv
+  have : f x ∈ u \ v := ⟨xfiu, xnfiv⟩
+  have : x ∈ f⁻¹' (u \ v) := mem_preimage.mpr this
+  exact this
 
 example : f '' s ∩ v = f '' (s ∩ f ⁻¹' v) := by
-  sorry
-
-
-
-
-#check mem_image
-#check mem_preimage
-#check mem_image_of_mem
-#check mem_of_eq_of_mem
-
+  ext y
+  constructor
+  . intro ⟨yfs, yv⟩
+    rcases (mem_image f s y).mp yfs with ⟨x, xs, fxeqy⟩
+    have xfiv : x ∈ f⁻¹' v := by
+      apply mem_preimage.mpr
+      rw [fxeqy]
+      exact yv
+    have : x ∈ s ∩ f⁻¹' v := ⟨xs, xfiv⟩
+    rw [← fxeqy]
+    have : f x ∈ f '' (s ∩ f⁻¹' v) := by
+      apply mem_image_of_mem
+      exact this
+    exact this
+  . intro h
+    rcases (mem_image f _ y).mp h with ⟨x, ⟨xs, xfiv⟩, fxeqy⟩
+    rw [← fxeqy]
+    have fxv : f x ∈ v := xfiv
+    have fxfs : f x ∈ f '' s := by
+      apply mem_image_of_mem
+      exact xs
+    exact ⟨fxfs, fxv⟩
 
 example : f '' (s ∩ f ⁻¹' u) ⊆ f '' s ∩ u := by
-  sorry
+  intro y ⟨x, ⟨xs, xfiu⟩, fxeqy⟩
+  rw [← fxeqy]
+  have fxfs : f x ∈ f '' s := by apply mem_image_of_mem; exact xs
+  have fxu : f x ∈ u := xfiu
+  have : f x ∈ f '' s ∩ u := ⟨fxfs, fxu⟩
+  exact this
 
 example : s ∩ f ⁻¹' u ⊆ f ⁻¹' (f '' s ∩ u) := by
-  sorry
+  intro x ⟨xs, xfiu⟩
+  have : f x ∈ f '' s ∩ u := by
+    constructor
+    . apply mem_image_of_mem; exact xs
+    . apply xfiu
+  have : x ∈ f⁻¹' (f '' s ∩ u) := by
+    apply mem_preimage.mpr
+    exact this
+  exact this
 
 example : s ∪ f ⁻¹' u ⊆ f ⁻¹' (f '' s ∪ u) := by
-  sorry
+  intro x h
+  rcases h with xs | xfiu
+  . have fxfs : f x ∈ f '' s := by apply mem_image_of_mem; exact xs
+    have : f x ∈ f '' s ∪ u := by left; exact fxfs
+    apply mem_preimage.mpr
+    exact this
+  . have fxu : f x ∈ u := xfiu
+    have : f x ∈ f '' s ∪ u := by right; exact fxu
+    exact this
 
 variable {I : Type*} (A : I → Set α) (B : I → Set β)
 
 example : (f '' ⋃ i, A i) = ⋃ i, f '' A i := by
-  sorry
+  ext y
+  simp -- only [mem_iUnion]
+  constructor
+  . intro h
+    rcases h with ⟨x, ⟨i, xAi⟩, fxeqy⟩
+    use i
+    use x
+  . rintro ⟨i, x, xAi, fxeqy⟩
+    use x
+    constructor
+    use i
+    exact fxeqy
 
 example : (f '' ⋂ i, A i) ⊆ ⋂ i, f '' A i := by
-  sorry
+  simp
+  intro i x
+  simp
+  intro h
+  have xAi : x ∈ A i := h i
+  constructor
+  use xAi
 
 example (i : I) (injf : Injective f) : (⋂ i, f '' A i) ⊆ f '' ⋂ i, A i := by
-  sorry
+  intro y
+  simp
+  intro h
+  rcases h i with ⟨x, xAi, fxeqy⟩
+  have : ∀ (i : I), x ∈ A i := by
+    intro i'
+    rcases h i' with ⟨x', x'Ai, fx'eqy⟩
+    have fxeqfx' : f x = f x' := Eq.trans fxeqy (Eq.symm fx'eqy)
+    have xeqx' : x = x' := injf fxeqfx'
+    apply mem_of_eq_of_mem
+    exact xeqx'
+    exact x'Ai
+  exact ⟨x, this, fxeqy⟩
+
 
 example : (f ⁻¹' ⋃ i, B i) = ⋃ i, f ⁻¹' B i := by
-  sorry
+  ext x
+  simp only [mem_iUnion]
+  constructor
+  . intro h
+    simp only [mem_iUnion] at h
+    have h' : f x ∈ ⋃ i, B i := h
+    simp only [mem_iUnion] at h'
+    exact h'
+  . rintro ⟨i, xfiBi⟩
+    have : f x ∈ ⋃ i, B i := mem_iUnion_of_mem i xfiBi
+    apply mem_preimage.mpr
+    exact this
 
 example : (f ⁻¹' ⋂ i, B i) = ⋂ i, f ⁻¹' B i := by
-  sorry
+  ext x
+  simp
+
+
+-- RESUME FROM HERE
+#check mem_image
+#check mem_preimage
+#check mem_image_of_mem
+#check mem_of_eq_of_mem
+#check mem_iUnion_of_mem
+#check mem_iInter_of_mem
+
+
 
 example : InjOn f s ↔ ∀ x₁ ∈ s, ∀ x₂ ∈ s, f x₁ = f x₂ → x₁ = x₂ :=
   Iff.refl _
