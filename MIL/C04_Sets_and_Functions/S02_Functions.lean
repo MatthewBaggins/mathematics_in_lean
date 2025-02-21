@@ -65,33 +65,86 @@ example (h : Surjective f) : u ⊆ f '' (f ⁻¹' u) := by
   apply mem_of_eq_of_mem fxeqy yu
 
 example (h : s ⊆ t) : f '' s ⊆ f '' t := by
-  rintro y h'
-  -- TODO
+  intro y yfs
+  rcases (mem_image f s y).mp yfs with ⟨x, xs, fxeqy⟩
+  rw [← fxeqy]
+  have xt : x ∈ t := h xs
+  have : f x ∈ f '' t := by
+    apply mem_image_of_mem
+    exact xt
+  exact this
 
-
-  sorry
 #check mem_image
 
 example (h : u ⊆ v) : f ⁻¹' u ⊆ f ⁻¹' v := by
-  sorry
+  intro x h'
+  have : f x ∈ u := h'
+  apply h h'
 
 example : f ⁻¹' (u ∪ v) = f ⁻¹' u ∪ f ⁻¹' v := by
-  sorry
+  ext x
+  constructor
+  . rintro (h | h)
+    . left; apply h
+    . right; apply h
+  . rintro (h | h)
+    . left; apply h
+    . right; apply h
 
 example : f '' (s ∩ t) ⊆ f '' s ∩ f '' t := by
-  sorry
+  rintro y ⟨x, ⟨xs, xt⟩, fxeqy⟩
+  rw [← fxeqy]
+  constructor
+  . apply mem_image_of_mem; exact xs
+  . apply mem_image_of_mem; exact xt
 
 example (h : Injective f) : f '' s ∩ f '' t ⊆ f '' (s ∩ t) := by
-  sorry
+  rintro y ⟨yfs, yft⟩
+  rcases (mem_image f s y).mp yfs with ⟨x, xs, fxeqy⟩
+  rcases (mem_image f t y).mp yft with ⟨x', x't, fx'eqy⟩
+  have fxeqfx' : f x = f x' := Eq.trans fxeqy (Eq.symm fx'eqy)
+  have xeqx' : x = x' := h fxeqfx'
+  have xt : x ∈ t := mem_of_eq_of_mem (h fxeqfx') x't
+  have xst : x ∈ s ∩ t := ⟨xs, xt⟩
+  have : f x ∈ f '' (s ∩ t) := mem_image_of_mem f xst
+  exact mem_of_eq_of_mem (Eq.symm fxeqy) this
+
 
 example : f '' s \ f '' t ⊆ f '' (s \ t) := by
-  sorry
+  intro y ⟨yfs, ynft⟩
+  rcases (mem_image f s y).mp yfs with ⟨x, xs, fxeqy⟩
+  rw [← fxeqy]
+  have fxnft : f x ∉ f '' t := by
+    rw [← fxeqy] at ynft
+    exact ynft
+  have xnt : x ∉ t := by
+    intro xt
+    have fxft : f x ∈ f '' t := by
+      apply mem_image_of_mem
+      apply xt
+    exfalso; exact fxnft fxft
+  have xst : x ∈ s \ t := ⟨xs, xnt⟩
+  apply mem_image_of_mem
+  exact xst
 
 example : f ⁻¹' u \ f ⁻¹' v ⊆ f ⁻¹' (u \ v) := by
-  sorry
+  intro x ⟨xfu, xnfv⟩
+  have fxu : f x ∈ u := mem_preimage.mp xfu
+  have fxnv : f x ∉ v := λ fxv ↦ xnfv fxv
+  apply mem_preimage.mpr
+  exact ⟨fxu, fxnv⟩
 
 example : f '' s ∩ v = f '' (s ∩ f ⁻¹' v) := by
   sorry
+
+
+
+
+#check mem_image
+#check mem_preimage
+#check mem_image_of_mem
+#check mem_of_eq_of_mem
+
 
 example : f '' (s ∩ f ⁻¹' u) ⊆ f '' s ∩ u := by
   sorry
