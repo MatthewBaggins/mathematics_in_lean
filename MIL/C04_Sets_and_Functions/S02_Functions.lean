@@ -214,7 +214,7 @@ variable {I : Type*} (A : I → Set α) (B : I → Set β)
 
 example : (f '' ⋃ i, A i) = ⋃ i, f '' A i := by
   ext y
-  simp -- only [mem_iUnion]
+  simp
   constructor
   . intro h
     rcases h with ⟨x, ⟨i, xAi⟩, fxeqy⟩

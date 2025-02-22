@@ -56,9 +56,13 @@ end Point
 namespace Point
 
 protected theorem add_comm (a b : Point) : add a b = add b a := by
-  rw [add, add]
-  ext <;> dsimp
-  repeat' apply add_comm
+  rw [add]
+  rw [add]
+  ext
+  repeat
+  dsimp; apply add_comm
+  -- ext <;> dsimp
+  -- repeat' apply add_comm
 
 example (a b : Point) : add a b = add b a := by simp [add, add_comm]
 
@@ -81,14 +85,25 @@ theorem addAlt_comm (a b : Point) : addAlt a b = addAlt b a := by
   repeat' apply add_comm
 
 protected theorem add_assoc (a b c : Point) : (a.add b).add c = a.add (b.add c) := by
-  sorry
+  rw [add, add, add, add]
+  ext
+  repeat
+  dsimp; apply add_assoc
 
 def smul (r : ℝ) (a : Point) : Point :=
-  sorry
+  ⟨r * a.x, r * a.y, r * a.z⟩
 
-theorem smul_distrib (r : ℝ) (a b : Point) :
-    (smul r a).add (smul r b) = smul r (a.add b) := by
-  sorry
+
+theorem smul_distrib
+    (r : ℝ) (a b : Point)
+    : (smul r a).add (smul r b) = smul r (a.add b)
+    := by
+  rw [add, add, smul, smul, smul]
+  ext
+  repeat
+  dsimp; rw [← mul_add]
+
+#check mul_add
 
 end Point
 
@@ -100,6 +115,16 @@ structure StandardTwoSimplex where
   y_nonneg : 0 ≤ y
   z_nonneg : 0 ≤ z
   sum_eq : x + y + z = 1
+
+theorem weighted_avg_nonneg
+    (lambda : Real) (lambda_nonneg : 0 ≤ lambda) (lambda_le : lambda ≤ 1)
+    (x y : Real) (x_nonneg : 0 ≤ x) (y_nonneg : 0 ≤ y)
+    : 0 ≤ lambda * x + (1 - lambda) * y
+    := by
+  have lambda_x_nonneg : 0 ≤ lambda * x := mul_nonneg lambda_nonneg x_nonneg
+  have one_minus_lambda_nonneg : 0 ≤ 1 - lambda := sub_nonneg_of_le lambda_le
+  have lambda_y_nonneg : 0 ≤ (1 - lambda) * y := mul_nonneg one_minus_lambda_nonneg y_nonneg
+  exact add_nonneg lambda_x_nonneg lambda_y_nonneg
 
 namespace StandardTwoSimplex
 
@@ -125,15 +150,46 @@ def midpoint (a b : StandardTwoSimplex) : StandardTwoSimplex
   z_nonneg := div_nonneg (add_nonneg a.z_nonneg b.z_nonneg) (by norm_num)
   sum_eq := by field_simp; linarith [a.sum_eq, b.sum_eq]
 
+
 def weightedAverage (lambda : Real) (lambda_nonneg : 0 ≤ lambda) (lambda_le : lambda ≤ 1)
-    (a b : StandardTwoSimplex) : StandardTwoSimplex :=
-  sorry
+    (a b : StandardTwoSimplex) : StandardTwoSimplex where
+  x := lambda * a.x + (1 - lambda) * b.x
+  y := lambda * a.y + (1 - lambda) * b.y
+  z := lambda * a.z + (1 - lambda) * b.z
+  x_nonneg := weighted_avg_nonneg lambda lambda_nonneg lambda_le a.x b.x a.x_nonneg b.x_nonneg
+  y_nonneg := weighted_avg_nonneg lambda lambda_nonneg lambda_le a.y b.y a.y_nonneg b.y_nonneg
+  z_nonneg := weighted_avg_nonneg lambda lambda_nonneg lambda_le a.z b.z a.z_nonneg b.z_nonneg
+  sum_eq := by
+    calc
+      lambda * a.x + (1 - lambda) * b.x + (lambda * a.y + (1 - lambda) * b.y) + (lambda * a.z + (1 - lambda) * b.z)
+        = ((lambda * a.x + (1 - lambda) * b.x) + lambda * a.y)
+        + (1 - lambda) * b.y + lambda * a.z + (1 - lambda) * b.z := by
+          rw [← add_assoc, ← add_assoc]
+      _ = lambda * (a.x + a.y) + (1 - lambda) * b.x + (1 - lambda) * b.y
+        + lambda * a.z + (1 - lambda) * b.z := by
+          rw [add_assoc (lambda * a.x),
+              add_comm ((1 - lambda) * b.x),
+              ← add_assoc,
+              mul_add]
+      _ = lambda * (a.x + a.y) + (1 - lambda) * (b.x + b.y)
+        + lambda * a.z + (1 - lambda) * b.z := by
+          rw [add_assoc (lambda * (a.x + a.y)),
+              ← mul_add (1 - lambda)]
+      _ = lambda * (a.x + a.y) + lambda * a.z
+        + (1 - lambda) * (b.x + b.y) + (1 - lambda) * b.z := by
+          rw [add_assoc (lambda * (a.x + a.y)),
+              add_comm ((1 - lambda) * (b.x + b.y)),
+              ← add_assoc]
+      _ = lambda * (a.x + a.y + a.z) + (1 - lambda) * (b.x + b.y + b.z) := by
+          rw [← mul_add, add_assoc, ← mul_add]
+      _ = 1 := by rw [a.sum_eq, mul_one, b.sum_eq, mul_one]; ring
 
 end
 
 end StandardTwoSimplex
 
 open BigOperators
+
 
 structure StandardSimplex (n : ℕ) where
   V : Fin n → ℝ
@@ -155,6 +211,34 @@ def midpoint (n : ℕ) (a b : StandardSimplex n) : StandardSimplex n
       a.sum_eq_one, b.sum_eq_one]
     field_simp
 
+def weightedAverage {n : ℕ} (lambda : Real) (lambda_nonneg : 0 ≤ lambda) (lambda_le : lambda ≤ 1)
+    (a b : StandardSimplex n) : StandardSimplex n where
+  V i := lambda * (a.V i) + (1 - lambda) * (b.V i)
+
+  NonNeg i := by
+    simp
+    show lambda * a.V i + (1 - lambda) * b.V i ≥ 0
+    apply weighted_avg_nonneg
+    exact lambda_nonneg
+    exact lambda_le
+    apply a.NonNeg
+    apply b.NonNeg
+
+  sum_eq_one := by
+    simp
+    have sum_dist : ∑ x, (lambda * a.V x) = lambda * (∑ x, a.V x)
+                  := Eq.symm (Finset.mul_sum Finset.univ a.V lambda)
+    have sum_dist' : ∑ x, ((1-lambda) * b.V x) = (1-lambda) * (∑ x, b.V x)
+                   := Eq.symm (Finset.mul_sum Finset.univ b.V (1-lambda))
+    calc
+          ∑ x, (lambda * a.V x + (1 - lambda) * b.V x)
+        = (∑ x, lambda * a.V x) + (∑ x, (1-lambda) * b.V x)
+        := Finset.sum_add_distrib
+      _ = lambda * (∑ x, a.V x) + (1-lambda) * (∑ x, b.V x)
+        := by rw [sum_dist, sum_dist']
+      _ = 1
+        := by rw [a.sum_eq_one,  b.sum_eq_one]; ring
+
 end StandardSimplex
 
 structure IsLinear (f : ℝ → ℝ) where
@@ -173,7 +257,8 @@ def Point'' :=
   ℝ × ℝ × ℝ
 
 def IsLinear' (f : ℝ → ℝ) :=
-  (∀ x y, f (x + y) = f x + f y) ∧ ∀ x c, f (c * x) = c * f x
+  (∀ x y, f (x + y) = f x + f y) ∧
+  (∀ x c, f (c * x) = c * f x)
 
 def PReal :=
   { y : ℝ // 0 < y }
@@ -206,4 +291,3 @@ variable (s : StdSimplex)
 #check s.2
 
 end
-

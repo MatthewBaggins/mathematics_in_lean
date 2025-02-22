@@ -51,24 +51,64 @@ example (a b c : Nat) (h : a * b = a * c) (h' : a ≠ 0) : b = c :=
 
 example {m n : ℕ} (coprime_mn : m.Coprime n) : m ^ 2 ≠ 2 * n ^ 2 := by
   intro sqr_eq
-  have : 2 ∣ m := by
-    sorry
-  obtain ⟨k, meq⟩ := dvd_iff_exists_eq_mul_left.mp this
-  have : 2 * (2 * k ^ 2) = 2 * n ^ 2 := by
-    rw [← sqr_eq, meq]
+  have h₀ : 2 ∣ m := by
+    apply even_of_even_sqr
+    apply Dvd.intro (n ^ 2)
+    exact sqr_eq.symm
+  obtain ⟨k, meq2k⟩ := dvd_iff_exists_eq_mul_left.mp h₀
+  have h₁ : 2 * (2 * k ^ 2) = 2 * n ^ 2 := by
+    rw [← sqr_eq]
+    rw [meq2k]
     ring
-  have : 2 * k ^ 2 = n ^ 2 :=
-    sorry
-  have : 2 ∣ n := by
-    sorry
-  have : 2 ∣ m.gcd n := by
-    sorry
+  have h₂ : 2 * k ^ 2 = n ^ 2 := by
+    have : 2 ≠ 0 := by intro _; contradiction
+    apply (mul_right_inj' this).mp
+    exact h₁
+  have h₃ : 2 ∣ n := by
+    apply even_of_even_sqr
+    apply Dvd.intro (k ^ 2)
+    exact h₂
+  have h₄ : 2 ∣ m.gcd n := Nat.dvd_gcd h₀ h₃
   have : 2 ∣ 1 := by
-    sorry
+    rw [coprime_mn] at h₄
+    exact h₄
   norm_num at this
 
-example {m n p : ℕ} (coprime_mn : m.Coprime n) (prime_p : p.Prime) : m ^ 2 ≠ p * n ^ 2 := by
-  sorry
+example
+    {m n p : ℕ}
+    (coprime_mn : m.Coprime n)
+    (prime_p : p.Prime)
+    : m ^ 2 ≠ p * n ^ 2
+    := by
+  intro heq
+  have h₀ : p ∣ m := by
+    apply prime_p.dvd_of_dvd_pow
+    rw [heq]
+    apply dvd_mul_right
+  obtain ⟨k, meqkp⟩ := dvd_iff_exists_eq_mul_left.mp h₀
+  have h₁ : p * (p * k^2) = p * n^2 := by
+    rw [← heq]
+    rw [meqkp]
+    ring
+  have h₂ : p * k^2 = n^2 := by
+    have : p ≠ 0 := Nat.Prime.ne_zero prime_p
+    exact (mul_right_inj' this).mp h₁
+  have h₃ : p ∣ n := by
+    apply prime_p.dvd_of_dvd_pow
+    apply Dvd.intro (k^2) h₂
+  have h₄ : p ∣ m.gcd n := Nat.dvd_gcd h₀ h₃
+  have : p ∣ 1 := by
+    rw [coprime_mn] at h₄
+    exact h₄
+  norm_num at this
+
+#check even_of_even_sqr
+#check Nat.dvd_gcd
+#check Nat.prime_def
+#check Nat.Prime.two_le
+#check Nat.le_of_dvd
+#check Dvd.intro
+
 #check Nat.primeFactorsList
 #check Nat.prime_of_mem_primeFactorsList
 #check Nat.prod_primeFactorsList
@@ -117,4 +157,3 @@ example {m n k r : ℕ} (nnz : n ≠ 0) (pow_eq : m ^ k = r * n ^ k) {p : ℕ} :
   sorry
 
 #check multiplicity
-
