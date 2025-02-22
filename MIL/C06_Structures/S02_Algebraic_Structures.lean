@@ -12,6 +12,9 @@ structure Group₁ (α : Type*) where
   one_mul : ∀ x : α, mul one x = x
   inv_mul_cancel : ∀ x : α, mul (inv x) x = one
 
+#check Group
+#print Group
+
 structure Group₁Cat where
   α : Type*
   str : Group₁ α
@@ -28,6 +31,10 @@ variable (f : α ≃ β) (g : β ≃ γ)
 #check (Equiv.refl α : α ≃ α)
 #check (f.symm : β ≃ α)
 #check (f.trans g : α ≃ γ)
+
+#check ((λ x ↦ g.toFun (f.toFun x)) : α → γ)
+#check ((λ x ↦ f.invFun (g.invFun x)) : γ → α)
+
 
 example (x : α) : (f.trans g).toFun x = g.toFun (f.toFun x) :=
   rfl
@@ -54,8 +61,10 @@ def permGroup {α : Type*} : Group₁ (Equiv.Perm α)
   inv_mul_cancel := Equiv.self_trans_symm
 
 structure AddGroup₁ (α : Type*) where
-  (add : α → α → α)
-  -- fill in the rest
+  add  : α → α → α
+  neg  : α → α
+  zero : α
+
 @[ext]
 structure Point where
   x : ℝ
@@ -67,11 +76,15 @@ namespace Point
 def add (a b : Point) : Point :=
   ⟨a.x + b.x, a.y + b.y, a.z + b.z⟩
 
-def neg (a : Point) : Point := sorry
+def neg (a : Point) : Point :=
+  ⟨-a.x, -a.y, -a.z⟩
 
-def zero : Point := sorry
+def zero : Point := ⟨0, 0, 0⟩
 
-def addGroupPoint : AddGroup₁ Point := sorry
+def addGroupPoint : AddGroup₁ Point where
+  add := add
+  neg := neg
+  zero := zero
 
 end Point
 
@@ -80,6 +93,7 @@ variable {α : Type*} (f g : Equiv.Perm α) (n : ℕ)
 
 #check f * g
 #check mul_assoc f g g⁻¹
+#check Eq.symm $ mul_assoc f g g⁻¹
 
 -- group power, defined for any group
 #check g ^ n
@@ -169,5 +183,33 @@ def foo : f * 1 * g⁻¹ = g.symm.trans ((Equiv.refl α).trans f) :=
 end
 
 class AddGroup₂ (α : Type*) where
-  add : α → α → α
+  add  : α → α → α
+  neg  : α → α
+  zero : α
+  add_assoc : ∀ x y z : α, add (add x y) z = add x (add y z)
+  add_zero : ∀ x, add x zero = x
+  zero_add : ∀ x, add zero x = x
+  neg_add_cancel : ∀ x, add (neg x) x = zero
+
+instance hasAddAddGroup₂ {α : Type*} [AddGroup₂ α] : Add α :=
+  ⟨AddGroup₂.add⟩
+
+instance hasNegAddGroup₂ {α : Type*} [AddGroup₂ α] : Neg α :=
+  ⟨AddGroup₂.neg⟩
+
+instance hasZeroAddGroup₂ {α : Type*} [AddGroup₂ α] : Zero α :=
+  ⟨AddGroup₂.zero⟩
+
+instance : AddGroup₂ Point where
+  add := Point.add
+  neg := Point.neg
+  zero := Point.zero
+  add_assoc := by simp [Point.add, add_assoc]
+  add_zero := by simp [Point.add, Point.zero]
+  zero_add := by simp [Point.add, Point.zero]
+  neg_add_cancel := by simp [Point.add, Point.neg, Point.zero]
+
+
+
+
   -- fill in the rest

@@ -269,17 +269,6 @@ example : (f ⁻¹' ⋂ i, B i) = ⋂ i, f ⁻¹' B i := by
   ext x
   simp
 
-
--- RESUME FROM HERE
-#check mem_image
-#check mem_preimage
-#check mem_image_of_mem
-#check mem_of_eq_of_mem
-#check mem_iUnion_of_mem
-#check mem_iInter_of_mem
-
-
-
 example : InjOn f s ↔ ∀ x₁ ∈ s, ∀ x₂ ∈ s, f x₁ = f x₂ → x₁ = x₂ :=
   Iff.refl _
 
@@ -291,33 +280,68 @@ open Set Real
 
 example : InjOn log { x | x > 0 } := by
   intro x xpos y ypos
-  intro e
-  -- log x = log y
+  have xpos : x > 0 := by apply xpos
+  have ypos : y > 0 := by apply ypos
+  intro logxeqlogy
   calc
     x = exp (log x) := by rw [exp_log xpos]
-    _ = exp (log y) := by rw [e]
+    _ = exp (log y) := by rw [logxeqlogy]
     _ = y := by rw [exp_log ypos]
 
-
 example : range exp = { y | y > 0 } := by
-  ext y; constructor
+  ext y
+  constructor
   · rintro ⟨x, rfl⟩
     apply exp_pos
-  intro ypos
-  use log y
-  rw [exp_log ypos]
+  . intro (ypos : y > 0)
+    use log y
+    rw [exp_log ypos]
 
 example : InjOn sqrt { x | x ≥ 0 } := by
-  sorry
+  intro x x_nonneg y y_nonneg heq
+  calc
+    x = (√x)^2 := Eq.symm (sq_sqrt x_nonneg)
+    _ = (√y)^2 := by rw [heq]
+    _ = y := sq_sqrt y_nonneg
 
 example : InjOn (fun x ↦ x ^ 2) { x : ℝ | x ≥ 0 } := by
-  sorry
+  intro x x_nonneg y y_nonneg heq
+  dsimp at heq
+  calc
+    x = √(x^2) := Eq.symm (sqrt_sq x_nonneg)
+    _ = √(y^2) := by rw [heq]
+    _ = y := sqrt_sq y_nonneg
 
 example : sqrt '' { x | x ≥ 0 } = { y | y ≥ 0 } := by
-  sorry
+  ext x
+  constructor
+  . intro h
+    rcases (mem_image sqrt { x | x ≥ 0 } x).mp h with ⟨y, yge0, sqrtyeqx⟩
+    rw [← sqrtyeqx]
+    dsimp
+    apply sqrt_nonneg
+  . intro x_nonneg
+    simp
+    use x^2
+    constructor
+    . apply sq_nonneg
+    . apply sqrt_sq x_nonneg
 
 example : (range fun x ↦ x ^ 2) = { y : ℝ | y ≥ 0 } := by
-  sorry
+  ext x
+  constructor
+  . intro h
+    simp; simp at h
+    rcases h with ⟨y, sqyeqx⟩
+    have sqy_nonneg : 0 ≤ y^2 := by apply sq_nonneg
+    apply le_of_le_of_eq
+    exact sqy_nonneg
+    exact sqyeqx
+  . intro x_nonneg
+    simp; simp at x_nonneg
+    use √x
+    apply sq_sqrt
+    exact x_nonneg
 
 end
 
@@ -337,18 +361,39 @@ noncomputable section
 
 open Classical
 
-def inverse (f : α → β) : β → α := fun y : β ↦
-  if h : ∃ x, f x = y then Classical.choose h else default
+def inverse
+    (f : α → β)
+    : β → α
+    := λ y : β ↦
+  if h : ∃ x, f x = y
+  then Classical.choose h
+  else default
 
-theorem inverse_spec {f : α → β} (y : β) (h : ∃ x, f x = y) : f (inverse f y) = y := by
-  rw [inverse, dif_pos h]
+theorem inverse_spec
+    {f : α → β}
+    (y : β) (h : ∃ x, f x = y)
+    : f (inverse f y) = y
+    := by
+  rw [inverse]
+  rw [dif_pos h]
   exact Classical.choose_spec h
 
 variable (f : α → β)
 
 open Function
 
-example : Injective f ↔ LeftInverse (inverse f) f :=
+-- RESUME FROM HERE? (OR EARLIER???)
+example : Injective f ↔ LeftInverse (inverse f) f := by
+  constructor
+  . intro injf y
+    rw [inverse]
+    by_cases h : ∃ x, f x = f y
+    . rcases h with ⟨x, fxeqfy⟩
+      have : x = y := injf fxeqfy
+
+
+
+
   sorry
 
 example : Surjective f ↔ RightInverse (inverse f) f :=
